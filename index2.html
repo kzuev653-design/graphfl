@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Эйлеров цикл: Алгоритм Флёри</title>
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        :root {
+            --primary: #007bff;
+            --secondary: #6c757d;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --info: #17a2b8;
+            --interactive: #9c27b0;
+            --theory: #673ab7;
+            --border-radius: 8px;
+            --box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            --transition: all 0.3s ease;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* РАЗРЕШАЕМ ПРОКРУТКУ НА ТЕЛЕФОНЕ */
+        html, body {
+            width: 100%;
+            height: auto;
+            min-height: 100vh;
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 0;
+            margin: 0;
+            background-color: #f0f2f5;
+            line-height: 1.6;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 10px;
+            background-color: white;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--primary);
+            background-color: white;
+            flex-shrink: 0;
+        }
+        
+        .header h1 {
+            font-size: clamp(1.2rem, 4vw, 1.8rem);
+            color: #333;
+            margin-bottom: 4px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: clamp(0.75rem, 2.5vw, 1rem);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            background-color: white;
+            flex: 1;
+            min-height: 0;
+        }
+        
+        .left-panel {
+            flex: 1;
+            min-width: 280px;
+            max-width: 380px;
+            height: auto;
+            overflow-y: visible;
+            padding-right: 5px;
+        }
+        
+        .right-panel {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            overflow: visible;
+        }
+        
+        #network {
+            width: 100%;
+            min-height: 300px;
+            height: 45vh;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            display: block;
+        }
+        
+        .log-section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 10px;
+            box-shadow: var(--box-shadow);
+            flex: 1;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #e9ecef;
+            margin-top: 10px;
+        }
+        
+        .log-title {
+            font-size: clamp(0.9rem, 2vw, 1rem);
+            margin-bottom: 5px;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        #log {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #eee;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: clamp(0.75rem, 2vw, 0.85rem);
+            line-height: 1.4;
+            max-height: 150px;
+        }
+        
+        .clear-log {
+            background: var(--secondary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+        
+        .controls-panel {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 12px;
+            box-shadow: var(--box-shadow);
+            border: 1px solid #e9ecef;
+            height: auto;
+            overflow-y: visible;
+        }
+        
+        .difficulty-section {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: var(--border-radius);
+            border: 1px solid #e9ecef;
+        }
+        
+        .difficulty-title {
+            font-size: clamp(1rem, 2.5vw, 1.1rem);
+            margin-bottom: 8px;
+            color: #333;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .difficulty-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .difficulty-btn {
+            padding: 10px 6px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: center;
+            font-size: clamp(0.8rem, 2vw, 0.9rem);
+        }
+        
+        .difficulty-btn.active {
+            transform: scale(1.02);
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.3);
+        }
+        
+        .difficulty-btn.easy { background-color: #28a745; color: white; }
+        .difficulty-btn.medium { background-color: #ffc107; color: #333; }
+        .difficulty-btn.hard { background-color: #dc3545; color: white; }
+        
+        .level-info {
+            padding: 8px;
+            background: white;
+            border-radius: var(--border-radius);
+            font-size: clamp(0.8rem, 2vw, 0.85rem);
+            border-left: 4px solid var(--primary);
+            border: 1px solid #e9ecef;
+            color: #333;
+        }
+        
+        .btn {
+            padding: 12px 12px;
+            font-size: clamp(0.85rem, 2.5vw, 0.95rem);
+            cursor: pointer;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            margin: 3px;
+            transition: var(--transition);
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-height: 44px;
+        }
+        
+        .btn:active {
+            transform: scale(0.97);
+        }
+        
+        .btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .btn-success { background-color: var(--success); }
+        .btn-warning { background-color: var(--warning); color: #333; }
+        .btn-danger { background-color: var(--danger); }
+        .btn-info { background-color: var(--info); }
+        .btn-interactive { background-color: var(--interactive); }
+        .btn-theory { background-color: var(--theory); }
+        
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 8px 0;
+            justify-content: center;
+        }
+        
+        .btn-group-vertical {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 8px 0;
+        }
+        
+        .new-graph-section {
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        .new-graph-section .btn {
+            width: 100%;
+        }
+        
+        .user-input-section, .interactive-section, .theory-section {
+            margin: 10px 0;
+            padding: 12px;
+            border-radius: var(--border-radius);
+            border: 1px solid #e9ecef;
+        }
+        
+        .user-input-section { background: #f8f9fa; border-left: 4px solid var(--primary); }
+        .interactive-section { background: #f3e5f5; border-left: 4px solid var(--interactive); }
+        .theory-section { background: #ede7f6; border-left: 4px solid var(--theory); }
+        
+        .path-input {
+            width: 100%;
+            padding: 12px 10px;
+            font-size: clamp(0.9rem, 2.5vw, 1rem);
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .attempts-counter {
+            display: inline-block;
+            padding: 6px 12px;
+            background: var(--secondary);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        
+        .current-path {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border: 2px dashed var(--interactive);
+        }
+        
+        .path-display {
+            font-family: monospace;
+            font-size: 0.9rem;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            word-break: break-word;
+        }
+        
+        .status-section {
+            margin-top: 8px;
+            padding: 8px;
+            border-radius: var(--border-radius);
+            font-weight: bold;
+            display: none;
+        }
+        
+        .status-section.success {
+            background-color: #d4edda;
+            color: #155724;
+            display: block;
+        }
+        
+        .status-section.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+        
+        .check-notification {
+            background-color: var(--warning);
+            color: #333;
+            padding: 10px;
+            border-radius: var(--border-radius);
+            margin: 10px 0;
+            text-align: center;
+            font-weight: bold;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            overflow-y: auto;
+            padding: 10px;
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            width: 95%;
+            max-width: 500px;
+        }
+        
+        .close-btn {
+            float: right;
+            font-size: 28px;
+            cursor: pointer;
+        }
+        
+        .mobile-nav {
+            display: none;
+        }
+        
+        /* МОБИЛЬНАЯ АДАПТАЦИЯ */
+        @media (max-width: 991px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .left-panel {
+                max-width: 100%;
+                order: 2;
+            }
+            
+            .right-panel {
+                order: 1;
+                min-height: 350px;
+            }
+            
+            #network {
+                height: 40vh;
+                min-height: 280px;
+            }
+            
+            body {
+                overflow-y: auto;
+                height: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .container {
+                height: auto;
+                min-height: 100vh;
+                overflow: visible;
+                padding-bottom: 80px;
+            }
+            
+            .mobile-nav {
+                display: block;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: white;
+                padding: 8px;
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.15);
+                z-index: 100;
+                border-top: 1px solid #ddd;
+            }
+            
+            .mobile-nav-buttons {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 8px;
+            }
+            
+            .mobile-nav-buttons .btn {
+                padding: 10px 5px;
+                font-size: 0.85rem;
+                margin: 0;
+                min-height: 44px;
+            }
+            
+            .difficulty-buttons {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container { padding: 8px; }
+            #network { height: 35vh; min-height: 250px; }
+            .difficulty-buttons { gap: 6px; }
+            .difficulty-btn { padding: 8px 4px; font-size: 0.75rem; }
+        }
+        
+        .section-title {
+            font-size: clamp(1rem, 2.5vw, 1.1rem);
+            margin: 12px 0 8px 0;
+            padding-bottom: 5px;
+            border-bottom: 2px solid var(--primary);
+            font-weight: 600;
+        }
+        
+        .mt-2 { margin-top: 8px; }
+        .text-center { text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Эйлеров цикл: Алгоритм Флёри</h1>
+            <p>Изучение алгоритма построения эйлерова цикла в графе</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="controls-panel">
+                    <div class="difficulty-section">
+                        <div class="difficulty-title">Уровень сложности</div>
+                        <div class="difficulty-buttons">
+                            <button onclick="setDifficulty('easy')" class="difficulty-btn easy active" id="easyBtn">Лёгкий (6-8)</button>
+                            <button onclick="setDifficulty('medium')" class="difficulty-btn medium" id="mediumBtn">Средний (9-10)</button>
+                            <button onclick="setDifficulty('hard')" class="difficulty-btn hard" id="hardBtn">Сложный (11-15)</button>
+                        </div>
+                        <div class="level-info" id="levelInfo"><strong>Лёгкий уровень:</strong> 6-8 вершин</div>
+                    </div>
+                    
+                    <div class="new-graph-section">
+                        <button onclick="generateAndDraw()" class="btn btn-info">Новый граф</button>
+                    </div>
+                    
+                    <div class="section-title">Режимы работы</div>
+                    <div class="btn-group main-buttons">
+                        <button onclick="runFleury()" id="autoBtn" class="btn btn-success">Автопоиск</button>
+                        <button onclick="startUserMode()" id="userModeBtn" class="btn btn-warning">Самостоятельно</button>
+                        <button onclick="startInteractiveMode()" id="interactiveBtn" class="btn btn-interactive">Интерактивно</button>
+                    </div>
+                    
+                    <div id="userInputSection" class="user-input-section" style="display: none;">
+                        <div class="user-input-title">Самостоятельный поиск</div>
+                        <p>Введите последовательность вершин:</p>
+                        <input type="text" id="pathInput" class="path-input" placeholder="0 1 2 3 0">
+                        <div class="btn-group-vertical">
+                            <button onclick="checkUserPath()" class="btn btn-success">Проверить</button>
+                            <button onclick="showHint()" class="btn btn-info">Подсказка</button>
+                            <button onclick="showTheoryExplanation()" class="btn btn-theory">Теория</button>
+                            <button onclick="giveUp()" class="btn btn-danger">Сдаться</button>
+                        </div>
+                        <div class="mt-2 text-center">
+                            <span class="attempts-counter" id="attemptsCounter">Попыток: 0/3</span>
+                        </div>
+                    </div>
+                    
+                    <div id="interactiveSection" class="interactive-section" style="display: none;">
+                        <div class="interactive-title">Интерактивный режим</div>
+                        <div class="current-path">
+                            <div class="path-display" id="interactivePathDisplay">Кликайте на вершины...</div>
+                        </div>
+                        <div id="checkNotification" class="check-notification" style="display: none;">Нажмите кнопку "Проверить"</div>
+                        <div class="btn-group-vertical mt-2">
+                            <button onclick="checkInteractivePath()" class="btn btn-success">Проверить</button>
+                            <button onclick="resetInteractivePath()" class="btn btn-warning">Заново</button>
+                            <button onclick="undoLastStep()" class="btn btn-info">Отменить</button>
+                            <button onclick="exitInteractiveMode()" class="btn btn-danger">Выйти</button>
+                        </div>
+                        <div class="mt-2 text-center">
+                            <span class="attempts-counter" id="interactiveAttemptsCounter">Шагов: 0</span>
+                            <span class="attempts-counter" id="interactiveEdgesCounter">Рёбер: 0/0</span>
+                        </div>
+                    </div>
+                    
+                    <div id="theorySection" class="theory-section" style="display: none;">
+                        <div class="theory-title">Теоретическое объяснение</div>
+                        <div class="theory-content" id="theoryContent"></div>
+                        <div class="btn-group-vertical">
+                            <button onclick="continueFleury()" class="btn btn-success">Продолжить</button>
+                            <button onclick="exitTheoryMode()" class="btn btn-danger">Выйти</button>
+                        </div>
+                    </div>
+                    
+                    <div id="resultStatus" class="status-section"></div>
+                </div>
+            </div>
+            
+            <div class="right-panel">
+                <div id="network"></div>
+                <div class="log-section">
+                    <div class="log-title">
+                        <span>Журнал действий</span>
+                        <button onclick="clearLog()" class="clear-log">Очистить</button>
+                    </div>
+                    <div id="log"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+
+    
+    <div id="resultModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h2 class="modal-title" id="modalTitle">Результат</h2>
+            <div class="modal-body" id="modalContent"></div>
+            <div class="modal-footer">
+                <button onclick="closeModal()" class="btn">Продолжить</button>
+                <button onclick="showSolution()" id="showSolutionBtn" class="btn btn-success" style="display: none;">Решение</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== ПОЛНЫЙ ОРИГИНАЛЬНЫЙ JS КОД ==========
+        // Глобальные переменные
+        let network;
+        let nodesDataSet;
+        let edgesDataSet;
+        let graphData = { nodes: [], edges: [] };
+        let adjList = {};
+        
+        // Состояния режимов
+        let userAttempts = 0;
+        let maxAttempts = 3;
+        let isUserMode = false;
+        let isInteractiveMode = false;
+        let isTheoryMode = false;
+        let solutionPath = [];
+        
+        // Интерактивный режим
+        let interactivePath = [];
+        let interactiveUsedEdges = new Set();
+        let startVertex = null;
+        let currentVertex = null;
+        
+        // Алгоритм Флёри
+        let fleuryState = {
+            current: null,
+            path: [],
+            workingEdges: [],
+            totalEdges: 0,
+            step: 0,
+            paused: false
+        };
+        
+        // Уровни сложности
+        let currentDifficulty = 'easy';
+        const difficultySettings = {
+            easy: { minNodes: 6, maxNodes: 8, minEdges: 8, maxEdges: 14, attempts: 3, color: '#28a745', description: 'Граф с 6-8 вершинами' },
+            medium: { minNodes: 9, maxNodes: 10, minEdges: 12, maxEdges: 20, attempts: 3, color: '#ffc107', description: 'Граф с 9-10 вершинами' },
+            hard: { minNodes: 11, maxNodes: 15, minEdges: 15, maxEdges: 30, attempts: 3, color: '#dc3545', description: 'Граф с 11-15 вершинами' }
+        };
+        
+        let eulerCycleFound = false;
+        
+        const theoryExplanations = {
+            algorithmStart: {
+                title: "Начало алгоритма Флёри",
+                steps: [
+                    { title: "Выбор начальной вершины", content: "В эйлеровом графе можно начать с любой вершины. Алгоритм выберет вершину 0." },
+                    { title: "Проверка условий", content: "Эйлеров цикл существует ⇔ граф связный и все вершины имеют чётную степень." },
+                    { title: "Основная идея", content: "На каждом шаге выбираем ребро, избегая мостов (если есть выбор). Мост — ребро, удаление которого нарушает связность графа." }
+                ]
+            },
+            commonErrors: {
+                title: "Распространённые ошибки",
+                steps: [
+                    { title: "Нарушение замкнутости", content: "Эйлеров цикл — замкнутая цепь, начальная вершина должна совпадать с конечной." },
+                    { title: "Несоответствие длины", content: "В эйлеровом цикле количество вершин на единицу больше количества рёбер." },
+                    { title: "Повторное использование ребра", content: "Каждое ребро должно быть пройдено ровно один раз." },
+                    { title: "Отсутствие смежности", content: "Переход возможен только между смежными вершинами." },
+                    { title: "Неполное покрытие", content: "Необходимо пройти все рёбра графа." }
+                ]
+            }
+        };
+        
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+        }
+        
+        function init() {
+            setDifficulty('easy');
+            generateAndDraw();
+            setupEventListeners();
+            updateMobileButtons();
+            
+            window.addEventListener('orientationchange', function() {
+                setTimeout(() => {
+                    if (network) {
+                        network.redraw();
+                        network.fit();
+                    }
+                }, 200);
+            });
+        }
+        
+        function setupEventListeners() {
+            document.getElementById('pathInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') checkUserPath();
+            });
+            
+            window.addEventListener('resize', function() {
+                if (network) {
+                    setTimeout(() => {
+                        network.redraw();
+                        network.fit();
+                    }, 100);
+                }
+            });
+            
+            window.onclick = function(event) {
+                const modal = document.getElementById('resultModal');
+                if (event.target == modal) closeModal();
+            }
+        }
+        
+        function updateMobileButtons() {
+            const autoBtn = document.getElementById('autoBtn');
+            const userBtn = document.getElementById('userModeBtn');
+            const interactiveBtn = document.getElementById('interactiveBtn');
+            const mobileAutoBtn = document.getElementById('mobileAutoBtn');
+            const mobileUserBtn = document.getElementById('mobileUserBtn');
+            const mobileInteractiveBtn = document.getElementById('mobileInteractiveBtn');
+            
+            if (mobileAutoBtn) mobileAutoBtn.disabled = autoBtn.disabled;
+            if (mobileUserBtn) mobileUserBtn.disabled = userBtn.disabled;
+            if (mobileInteractiveBtn) mobileInteractiveBtn.disabled = interactiveBtn.disabled;
+        }
+        
+        function setDifficulty(level) {
+            currentDifficulty = level;
+            
+            document.getElementById('easyBtn').classList.remove('active');
+            document.getElementById('mediumBtn').classList.remove('active');
+            document.getElementById('hardBtn').classList.remove('active');
+            document.getElementById(level + 'Btn').classList.add('active');
+            
+            const levelInfo = document.getElementById('levelInfo');
+            const settings = difficultySettings[level];
+            
+            const levelNames = { easy: 'Лёгкий', medium: 'Средний', hard: 'Сложный' };
+            levelInfo.innerHTML = `<strong>${levelNames[level]} уровень:</strong> ${settings.description}`;
+            levelInfo.style.borderLeftColor = settings.color;
+            
+            maxAttempts = settings.attempts;
+            
+            generateAndDraw();
+        }
+        
+        function generateEulerianGraphForLevel() {
+            const settings = difficultySettings[currentDifficulty];
+            const numNodes = Math.floor(Math.random() * (settings.maxNodes - settings.minNodes + 1)) + settings.minNodes;
+            
+            let nodes = [];
+            for (let i = 0; i < numNodes; i++) {
+                nodes.push({ 
+                    id: i, 
+                    label: String(i),
+                    font: { size: isMobileDevice() ? 14 : 16 },
+                    color: { border: '#2B7CE9', background: '#ffffff', highlight: { border: '#2B7CE9', background: '#D2E5FF' } }
+                });
+            }
+
+            let edges = [];
+            let degrees = new Array(numNodes).fill(0);
+            
+            for (let i = 0; i < numNodes; i++) {
+                let from = i;
+                let to = (i + 1) % numNodes;
+                edges.push({ from: from, to: to, id: `cycle-${from}-${to}-${Date.now()}-${Math.random()}`, color: '#333333', width: isMobileDevice() ? 2 : 2.5 });
+                degrees[from]++;
+                degrees[to]++;
+            }
+            
+            const currentEdges = edges.length;
+            const maxAdditional = Math.min(settings.maxEdges - currentEdges, Math.floor(numNodes * 2));
+            let additionalEdges = 0;
+            if (maxAdditional > 0) {
+                additionalEdges = Math.floor(Math.random() * (Math.floor(maxAdditional / 2) + 1)) * 2;
+            }
+            
+            let added = 0;
+            let attempts = 0;
+            const maxAttemptsLoop = 1000;
+            
+            while (added < additionalEdges && attempts < maxAttemptsLoop) {
+                attempts++;
+                let u = Math.floor(Math.random() * numNodes);
+                let v = Math.floor(Math.random() * numNodes);
+                if (u === v) continue;
+                if (edgeExists(edges, u, v)) continue;
+                if (degrees[u] >= 6 || degrees[v] >= 6) continue;
+                edges.push({ from: u, to: v, id: `extra-${u}-${v}-${Date.now()}-${Math.random()}`, color: '#333333', width: isMobileDevice() ? 2 : 2.5 });
+                degrees[u]++;
+                degrees[v]++;
+                added++;
+            }
+            
+            let oddVertices = [];
+            for (let i = 0; i < numNodes; i++) {
+                if (degrees[i] % 2 !== 0) oddVertices.push(i);
+            }
+            
+            let fixAttempts = 0;
+            const maxFixAttempts = 500;
+            while (oddVertices.length >= 2 && fixAttempts < maxFixAttempts) {
+                fixAttempts++;
+                const v1 = oddVertices[0];
+                const v2 = oddVertices[1];
+                if (!edgeExists(edges, v1, v2) && degrees[v1] < 6 && degrees[v2] < 6) {
+                    edges.push({ from: v1, to: v2, id: `fix-${v1}-${v2}-${Date.now()}-${Math.random()}`, color: '#333333', width: isMobileDevice() ? 2 : 2.5 });
+                    degrees[v1]++;
+                    degrees[v2]++;
+                    oddVertices.splice(0, 2);
+                } else {
+                    oddVertices.push(oddVertices.shift());
+                }
+            }
+            
+            if (oddVertices.length === 1) {
+                const v = oddVertices[0];
+                let connected = 0;
+                for (let i = 0; i < numNodes && connected < 2; i++) {
+                    if (i !== v && degrees[i] < 6 && !edgeExists(edges, v, i)) {
+                        edges.push({ from: v, to: i, id: `fix2-${v}-${i}-${Date.now()}-${Math.random()}`, color: '#333333', width: isMobileDevice() ? 2 : 2.5 });
+                        degrees[v]++;
+                        degrees[i]++;
+                        connected++;
+                    }
+                }
+            }
+            
+            for (let i = 0; i < numNodes; i++) {
+                if (degrees[i] < 2) {
+                    while (degrees[i] < 2) {
+                        for (let j = 0; j < numNodes; j++) {
+                            if (i !== j && degrees[j] < 6 && !edgeExists(edges, i, j)) {
+                                edges.push({ from: i, to: j, id: `min-${i}-${j}-${Date.now()}-${Math.random()}`, color: '#333333', width: isMobileDevice() ? 2 : 2.5 });
+                                degrees[i]++;
+                                degrees[j]++;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            let allEven = true;
+            for (let i = 0; i < numNodes; i++) {
+                if (degrees[i] % 2 !== 0) {
+                    allEven = false;
+                    break;
+                }
+            }
+            
+            if (!allEven) return generateEulerianGraphForLevel();
+            
+            adjList = {};
+            nodes.forEach(n => adjList[n.id] = []);
+            edges.forEach(e => {
+                adjList[e.from].push({ to: e.to, id: e.id });
+                adjList[e.to].push({ to: e.from, id: e.id });
+            });
+            
+            return { nodes, edges };
+        }
+        
+        function edgeExists(edges, u, v) {
+            return edges.some(e => (e.from === u && e.to === v) || (e.from === v && e.to === u));
+        }
+        
+        function generateAndDraw() {
+            resetUserMode();
+            resetInteractiveMode();
+            exitTheoryMode();
+            eulerCycleFound = false;
+            document.getElementById('resultStatus').style.display = 'none';
+            clearLog();
+            log(' Сгенерирован новый граф');
+            
+            const data = generateEulerianGraphForLevel();
+            graphData = data;
+            
+            nodesDataSet = new vis.DataSet(data.nodes);
+            edgesDataSet = new vis.DataSet(data.edges);
+
+            const container = document.getElementById('network');
+            container.innerHTML = '';
+            
+            const isMobile = isMobileDevice();
+            
+            const options = {
+                physics: { stabilization: true, enabled: true, solver: 'forceAtlas2Based', stabilization: { iterations: isMobile ? 50 : 100 } },
+                edges: { width: isMobile ? 2 : 2.5, smooth: false, color: { color: '#333333', highlight: '#ff0000' } },
+                nodes: { size: isMobile ? 20 : 25, font: { size: isMobile ? 14 : 16 }, shape: 'circle', borderWidth: 2, color: { border: '#2B7CE9', background: '#ffffff', highlight: { border: '#2B7CE9', background: '#D2E5FF' } } },
+                interaction: { hover: false, hoverConnectedEdges: false, dragNodes: !isInteractiveMode && !isMobile, zoomView: !isMobile, dragView: !isMobile, selectable: isInteractiveMode && !isMobile, navigationButtons: isMobile, keyboard: false, tooltipDelay: 300, hideEdgesOnDrag: true, hideEdgesOnZoom: true },
+                layout: { improvedLayout: true }
+            };
+            
+            if (network) network.destroy();
+            
+            try {
+                network = new vis.Network(container, { nodes: nodesDataSet, edges: edgesDataSet }, options);
+                setTimeout(() => { if (network) { network.redraw(); network.fit(); } }, 100);
+                network.on("click", function(params) {
+                    if (isInteractiveMode && params.nodes.length > 0) {
+                        const nodeId = parseInt(params.nodes[0]);
+                        handleVertexClick(nodeId);
+                    }
+                });
+            } catch (e) {
+                container.innerHTML = "Ошибка отображения графа";
+            }
+            
+            document.getElementById('autoBtn').disabled = false;
+            document.getElementById('userModeBtn').disabled = false;
+            document.getElementById('interactiveBtn').disabled = false;
+            updateMobileButtons();
+        }
+        
+        function colorEdge(edgeId, color) {
+            edgesDataSet.update({ id: edgeId, color: { color: color }, width: 4 });
+        }
+        
+        function findEdge(u, v) {
+            return graphData.edges.find(e => (e.from === u && e.to === v) || (e.from === v && e.to === u));
+        }
+        
+        function resetEdgeColors() {
+            graphData.edges.forEach(e => {
+                edgesDataSet.update({ id: e.id, color: '#333333', width: isMobileDevice() ? 2 : 2.5 });
+            });
+            graphData.nodes.forEach(n => {
+                nodesDataSet.update({ id: n.id, color: { background: '#ffffff', border: '#2B7CE9' } });
+            });
+        }
+        
+        function startInteractiveMode() {
+            isInteractiveMode = true;
+            interactivePath = [];
+            interactiveUsedEdges = new Set();
+            startVertex = null;
+            currentVertex = null;
+            
+            document.getElementById('interactiveSection').style.display = 'block';
+            document.getElementById('interactivePathDisplay').innerHTML = 'Кликните на вершину, чтобы начать...';
+            document.getElementById('checkNotification').style.display = 'none';
+            updateInteractiveCounters();
+            
+            document.getElementById('autoBtn').disabled = true;
+            document.getElementById('userModeBtn').disabled = true;
+            document.getElementById('interactiveBtn').disabled = true;
+            updateMobileButtons();
+            
+            document.getElementById('userInputSection').style.display = 'none';
+            document.getElementById('theorySection').style.display = 'none';
+            
+            resetEdgeColors();
+            
+            network.setOptions({ interaction: { dragNodes: false, selectable: true, navigationButtons: isMobileDevice(), zoomView: !isMobileDevice(), dragView: !isMobileDevice(), hover: false, hoverConnectedEdges: false } });
+            
+            log("Интерактивный режим включен. Кликайте на вершины графа.");
+        }
+        
+        function handleVertexClick(nodeId) {
+            if (!isInteractiveMode) return;
+            
+            if (startVertex === null) {
+                startVertex = nodeId;
+                currentVertex = nodeId;
+                interactivePath = [nodeId];
+                nodesDataSet.update({ id: nodeId, color: { background: '#e1bee7', border: '#9c27b0' } });
+                updatePathDisplay();
+                updateInteractiveCounters();
+                log(`📍 Начальная вершина: ${nodeId}`);
+            } else {
+                const edge = findEdge(currentVertex, nodeId);
+                if (!edge) {
+                    log(`Ошибка: нет ребра между ${currentVertex} и ${nodeId}`);
+                    showModal("Ошибка", `Вершины ${currentVertex} и ${nodeId} не являются смежными.`);
+                    return;
+                }
+                const edgeKey = `${Math.min(currentVertex, nodeId)}-${Math.max(currentVertex, nodeId)}`;
+                if (interactiveUsedEdges.has(edgeKey)) {
+                    log(`Ошибка: ребро {${currentVertex}, ${nodeId}} уже пройдено`);
+                    showModal("Ошибка", "Каждое ребро можно пройти только один раз.");
+                    return;
+                }
+                interactivePath.push(nodeId);
+                interactiveUsedEdges.add(edgeKey);
+                currentVertex = nodeId;
+                colorEdge(edge.id, '#9c27b0');
+                nodesDataSet.update({ id: nodeId, color: { background: '#e1bee7', border: '#9c27b0' } });
+                updatePathDisplay();
+                updateInteractiveCounters();
+                log(`Шаг: ${interactivePath[interactivePath.length-2]} → ${nodeId} (${interactiveUsedEdges.size}/${graphData.edges.length})`);
+                
+                if (interactiveUsedEdges.size === graphData.edges.length) {
+                    log(`🎯 Все рёбра пройдены! Нажмите кнопку "Проверить"`);
+                    document.getElementById('checkNotification').style.display = 'block';
+                    showModal("Внимание!", `<h3>Все рёбра пройдены!</h3><p>Теперь нажмите кнопку <strong>"Проверить"</strong>, чтобы узнать, является ли ваш путь эйлеровым циклом.</p><p>Пройдено рёбер: ${interactiveUsedEdges.size}/${graphData.edges.length}</p><p>Путь: ${interactivePath.join(' → ')}</p>`);
+                }
+                if (nodeId === startVertex && interactivePath.length > 1) {
+                    log(` Вернулись в начальную вершину ${startVertex}`);
+                }
+            }
+        }
+        
+        function updatePathDisplay() {
+            const display = document.getElementById('interactivePathDisplay');
+            if (interactivePath.length === 0) {
+                display.innerHTML = 'Кликните на вершину, чтобы начать...';
+                return;
+            }
+            let html = interactivePath.join(' → ');
+            html += `<br><small>Пройдено рёбер: ${interactiveUsedEdges.size}/${graphData.edges.length}</small>`;
+            display.innerHTML = html;
+        }
+        
+        function updateInteractiveCounters() {
+            document.getElementById('interactiveAttemptsCounter').textContent = `Шагов: ${interactivePath.length}`;
+            document.getElementById('interactiveEdgesCounter').textContent = `Рёбер: ${interactiveUsedEdges.size}/${graphData.edges.length}`;
+        }
+        
+        function checkInteractivePath() {
+            if (!isInteractiveMode || interactivePath.length === 0) {
+                showModal("Ошибка", "Сначала постройте путь.");
+                return;
+            }
+            const result = validateEulerianPath(interactivePath);
+            if (result.isValid) {
+                eulerCycleFound = true;
+                showModal("Эйлеров цикл найден!", `<h3 style="color: #28a745;">Эйлеров цикл найден!</h3><p>Путь: ${interactivePath.join(' → ')}</p><p>Пройдено рёбер: ${interactiveUsedEdges.size}/${graphData.edges.length}</p>`);
+                document.getElementById('resultStatus').className = 'status-section success';
+                document.getElementById('resultStatus').innerHTML = 'Эйлеров цикл найден!';
+                document.getElementById('resultStatus').style.display = 'block';
+                interactiveUsedEdges.forEach(edgeKey => {
+                    const [u, v] = edgeKey.split('-').map(Number);
+                    const edge = findEdge(u, v);
+                    if (edge) colorEdge(edge.id, '#28a745');
+                });
+                log(`Найден эйлеров цикл: ${interactivePath.join(' → ')}`);
+                setTimeout(() => exitInteractiveMode(), 3000);
+            } else {
+                let errorMessage = "Не эйлеров цикл. ";
+                if (result.message.includes("замкнутости")) errorMessage += "Данный граф не является эйлеровым, потому что маршрут не замкнут (начальная вершина не совпадает с конечной).";
+                else if (result.message.includes("длины") || result.message.includes("вершин должно быть на единицу больше")) errorMessage += "Данный граф не является эйлеровым, потому что пройдены не все рёбра.";
+                else if (result.message.includes("смежными") || result.message.includes("не являются смежными")) errorMessage += "Данный граф не является эйлеровым, потому что переход между указанными вершинами невозможен (они не смежны).";
+                else if (result.message.includes("повторное")) errorMessage += "Данный граф не является эйлеровым, потому что некоторые рёбра пройдены более одного раза.";
+                else if (result.message.includes("не все рёбра пройдены")) errorMessage += "Данный граф не является эйлеровым, потому что пройдены не все рёбра.";
+                else errorMessage += result.message;
+                showModal("Ошибка", errorMessage);
+                log(`Ошибка: ${errorMessage}`);
+                if (interactiveUsedEdges.size < graphData.edges.length) log(`💡 Осталось пройти ${graphData.edges.length - interactiveUsedEdges.size} рёбер`);
+            }
+            document.getElementById('checkNotification').style.display = 'none';
+        }
+        
+        function resetInteractivePath() {
+            interactivePath = [];
+            interactiveUsedEdges = new Set();
+            startVertex = null;
+            currentVertex = null;
+            resetEdgeColors();
+            updatePathDisplay();
+            updateInteractiveCounters();
+            document.getElementById('checkNotification').style.display = 'none';
+            log("Путь сброшен. Начните заново.");
+        }
+        
+        function undoLastStep() {
+            if (interactivePath.length <= 1) { resetInteractivePath(); return; }
+            const lastVertex = interactivePath.pop();
+            const prevVertex = interactivePath[interactivePath.length - 1];
+            const edgeKey = `${Math.min(lastVertex, prevVertex)}-${Math.max(lastVertex, prevVertex)}`;
+            interactiveUsedEdges.delete(edgeKey);
+            const edge = findEdge(lastVertex, prevVertex);
+            if (edge) edgesDataSet.update({ id: edge.id, color: '#333333', width: isMobileDevice() ? 2 : 2.5 });
+            currentVertex = prevVertex;
+            updatePathDisplay();
+            updateInteractiveCounters();
+            if (interactiveUsedEdges.size < graphData.edges.length) document.getElementById('checkNotification').style.display = 'none';
+            log(`↩️ Отменён шаг: ${prevVertex} → ${lastVertex}`);
+        }
+        
+        function exitInteractiveMode() {
+            resetInteractiveMode();
+            log("Выход из интерактивного режима.");
+        }
+        
+        function resetInteractiveMode() {
+            isInteractiveMode = false;
+            interactivePath = [];
+            interactiveUsedEdges = new Set();
+            startVertex = null;
+            currentVertex = null;
+            document.getElementById('interactiveSection').style.display = 'none';
+            document.getElementById('checkNotification').style.display = 'none';
+            document.getElementById('autoBtn').disabled = false;
+            document.getElementById('userModeBtn').disabled = false;
+            document.getElementById('interactiveBtn').disabled = false;
+            updateMobileButtons();
+            if (network) network.setOptions({ interaction: { dragNodes: true, selectable: false, navigationButtons: isMobileDevice(), hover: false, hoverConnectedEdges: false } });
+            resetEdgeColors();
+        }
+        
+        function startUserMode() {
+            isUserMode = true;
+            userAttempts = 0;
+            document.getElementById('userInputSection').style.display = 'block';
+            document.getElementById('pathInput').value = '';
+            updateAttemptsCounter();
+            document.getElementById('autoBtn').disabled = true;
+            document.getElementById('userModeBtn').disabled = true;
+            document.getElementById('interactiveBtn').disabled = true;
+            updateMobileButtons();
+            document.getElementById('interactiveSection').style.display = 'none';
+            document.getElementById('theorySection').style.display = 'none';
+            resetEdgeColors();
+            log(" Самостоятельный режим включен. Введите путь.");
+            setTimeout(() => document.getElementById('pathInput').focus(), 100);
+        }
+        
+        function checkUserPath() {
+            if (!isUserMode) return;
+            userAttempts++;
+            updateAttemptsCounter();
+            const input = document.getElementById('pathInput').value.trim();
+            if (!input) { showModal("Ошибка", "Введите путь"); return; }
+            let path;
+            if (input.includes(',')) path = input.split(',').map(x => parseInt(x.trim()));
+            else path = input.split(/\s+/).map(x => parseInt(x));
+            if (path.some(isNaN)) { showModal("Ошибка", "Путь должен содержать только числа"); return; }
+            const result = validateEulerianPath(path);
+            if (result.isValid) {
+                eulerCycleFound = true;
+                showModal("Эйлеров цикл найден!", `<h3 style="color: #28a745;">Эйлеров цикл найден!</h3><p>Путь: ${path.join(' → ')}</p>`);
+                document.getElementById('resultStatus').className = 'status-section success';
+                document.getElementById('resultStatus').innerHTML = 'Эйлеров цикл найден!';
+                document.getElementById('resultStatus').style.display = 'block';
+                visualizeUserPath(path, true);
+                log(`Найден эйлеров цикл: ${path.join(' → ')}`);
+                setTimeout(() => resetUserMode(), 3000);
+            } else {
+                let errorMessage = "Не эйлеров цикл. ";
+                if (result.message.includes("замкнутости")) errorMessage += "Данный граф не является эйлеровым, потому что маршрут не замкнут (начальная вершина не совпадает с конечной).";
+                else if (result.message.includes("длины") || result.message.includes("вершин должно быть на единицу больше")) errorMessage += "Данный граф не является эйлеровым, потому что пройдены не все рёбра.";
+                else if (result.message.includes("смежными") || result.message.includes("не являются смежными")) errorMessage += "Данный граф не является эйлеровым, потому что переход между указанными вершинами невозможен (они не смежны).";
+                else if (result.message.includes("повторное")) errorMessage += "Данный граф не является эйлеровым, потому что некоторые рёбра пройдены более одного раза.";
+                else if (result.message.includes("не все рёбра пройдены")) errorMessage += "Данный граф не является эйлеровым, потому что пройдены не все рёбра.";
+                else errorMessage += result.message;
+                showModal("Ошибка", errorMessage);
+                visualizeUserPath(path, false);
+                log(`Попытка ${userAttempts}: ${errorMessage}`);
+                if (userAttempts >= maxAttempts) {
+                    document.getElementById('showSolutionBtn').style.display = 'inline-block';
+                    solutionPath = findEulerianPath();
+                    log(`💡 Использованы все попытки. Можно посмотреть решение.`);
+                }
+            }
+        }
+        
+        function showHint() {
+            const edgeCount = graphData.edges.length;
+            let hint = `Подсказка: В графе ${edgeCount} рёбер, значит в цикле должно быть ${edgeCount + 1} вершин.`;
+            showModal("Подсказка", hint);
+            log(`Подсказка: ${hint.substring(0, 50)}...`);
+        }
+        
+        function showTheoryExplanation() {
+            const theory = theoryExplanations.commonErrors;
+            let content = '<h3>Теория эйлеровых циклов</h3>';
+            theory.steps.forEach(step => {
+                content += `<div style="margin-bottom: 10px;"><strong>${step.title}:</strong> ${step.content}</div>`;
+            });
+            showModal("Теория", content);
+            log("Показано теоретическое объяснение");
+        }
+        
+        function giveUp() {
+            solutionPath = findEulerianPath();
+            showModal("Решение", `Правильный эйлеров цикл: ${solutionPath.join(' → ')}`);
+            document.getElementById('showSolutionBtn').style.display = 'inline-block';
+            log(`Показано правильное решение: ${solutionPath.join(' → ')}`);
+        }
+        
+        function resetUserMode() {
+            isUserMode = false;
+            userAttempts = 0;
+            document.getElementById('userInputSection').style.display = 'none';
+            document.getElementById('autoBtn').disabled = false;
+            document.getElementById('userModeBtn').disabled = false;
+            document.getElementById('interactiveBtn').disabled = false;
+            updateMobileButtons();
+            resetEdgeColors();
+        }
+        
+        function updateAttemptsCounter() {
+            document.getElementById('attemptsCounter').textContent = `Попыток: ${userAttempts}/${maxAttempts}`;
+        }
+        
+        function visualizeUserPath(path, isCorrect) {
+            resetEdgeColors();
+            for (let i = 0; i < path.length - 1; i++) {
+                const u = path[i];
+                const v = path[i + 1];
+                const edge = findEdge(u, v);
+                if (edge) edgesDataSet.update({ id: edge.id, color: isCorrect ? '#28a745' : '#dc3545', width: 4 });
+            }
+        }
+        
+        async function runFleury() {
+            if (isUserMode || isInteractiveMode) { showModal("Предупреждение", "Завершите текущий режим"); return; }
+            fleuryState = {
+                current: parseInt(graphData.nodes[0].id),
+                path: [parseInt(graphData.nodes[0].id)],
+                workingEdges: JSON.parse(JSON.stringify(graphData.edges)),
+                totalEdges: graphData.edges.length,
+                step: 0,
+                paused: false
+            };
+            adjList = {};
+            graphData.nodes.forEach(n => adjList[n.id] = []);
+            fleuryState.workingEdges.forEach(e => {
+                adjList[e.from].push({ to: e.to, id: e.id });
+                adjList[e.to].push({ to: e.from, id: e.id });
+            });
+            showTheoryMode('algorithmStart');
+            log(`Алгоритм Флёри запущен. Старт: ${fleuryState.current}`);
+        }
+        
+        function showTheoryMode(topic) {
+            isTheoryMode = true;
+            document.getElementById('theorySection').style.display = 'block';
+            document.getElementById('autoBtn').disabled = true;
+            document.getElementById('userModeBtn').disabled = true;
+            document.getElementById('interactiveBtn').disabled = true;
+            updateMobileButtons();
+            const theory = theoryExplanations[topic];
+            let html = `<h4 style="color: var(--theory);">${theory.title}</h4>`;
+            theory.steps.forEach(step => { html += `<div style="margin-bottom: 10px;"><strong>${step.title}:</strong> ${step.content}</div>`; });
+            document.getElementById('theoryContent').innerHTML = html;
+            log(`📖 Теория: ${theory.title}`);
+        }
+        
+        async function continueFleury() {
+            if (!isTheoryMode) return;
+            document.getElementById('theorySection').style.display = 'none';
+            isTheoryMode = false;
+            await executeFleuryStep();
+        }
+        
+        function exitTheoryMode() {
+            isTheoryMode = false;
+            fleuryState.paused = false;
+            document.getElementById('theorySection').style.display = 'none';
+            document.getElementById('autoBtn').disabled = false;
+            document.getElementById('userModeBtn').disabled = false;
+            document.getElementById('interactiveBtn').disabled = false;
+            updateMobileButtons();
+        }
+        
+        async function executeFleuryStep() {
+            if (fleuryState.totalEdges <= 0) { checkResult(fleuryState.path); return; }
+            fleuryState.step++;
+            let neighbors = adjList[fleuryState.current];
+            if (neighbors.length === 0) { log("Ошибка: нет соседей"); checkResult(fleuryState.path); return; }
+            let chosenEdge = null;
+            let nextVertex = -1;
+            let isBridgeEdge = false;
+            for (let i = 0; i < neighbors.length; i++) {
+                let neighbor = neighbors[i];
+                let u = fleuryState.current;
+                let v = neighbor.to;
+                const isBridgeResult = isBridge(u, v, fleuryState.workingEdges);
+                if (!isBridgeResult || neighbors.length === 1) {
+                    chosenEdge = neighbor;
+                    nextVertex = v;
+                    isBridgeEdge = isBridgeResult;
+                    break;
+                }
+            }
+            if (chosenEdge) {
+                fleuryState.path.push(nextVertex);
+                colorEdge(chosenEdge.id, 'red');
+                await new Promise(r => setTimeout(r, isMobileDevice() ? 400 : 600));
+                removeEdgeFromAdj(fleuryState.current, nextVertex, chosenEdge.id);
+                removeEdgeFromAdj(nextVertex, fleuryState.current, chosenEdge.id);
+                fleuryState.workingEdges = fleuryState.workingEdges.filter(e => e.id !== chosenEdge.id);
+                const bridgeText = isBridgeEdge ? " (мост)" : "";
+                log(` Шаг ${fleuryState.step}: ${fleuryState.current} → ${nextVertex}${bridgeText}`);
+                fleuryState.current = nextVertex;
+                fleuryState.totalEdges--;
+                if (fleuryState.totalEdges > 0) setTimeout(executeFleuryStep, isMobileDevice() ? 400 : 600);
+                else checkResult(fleuryState.path);
+            }
+        }
+        
+        function isBridge(u, v, currentEdges) {
+            let countBefore = countReachable(u, currentEdges);
+            let edgesAfterRemove = currentEdges.filter(e => !((e.from == u && e.to == v) || (e.from == v && e.to == u)));
+            let countAfter = countReachable(u, edgesAfterRemove);
+            return countBefore > countAfter;
+        }
+        
+        function countReachable(startNode, edges) {
+            let visited = new Set();
+            let queue = [startNode];
+            visited.add(startNode);
+            let tempAdj = {};
+            graphData.nodes.forEach(n => tempAdj[n.id] = []);
+            edges.forEach(e => { tempAdj[e.from].push(e.to); tempAdj[e.to].push(e.from); });
+            while(queue.length > 0) {
+                let node = queue.shift();
+                if (tempAdj[node]) tempAdj[node].forEach(neighbor => { if (!visited.has(neighbor)) { visited.add(neighbor); queue.push(neighbor); } });
+            }
+            return visited.size;
+        }
+        
+        function removeEdgeFromAdj(u, v, id) {
+            adjList[u] = adjList[u].filter(edge => edge.id !== id);
+        }
+        
+        function validateEulerianPath(path) {
+            if (path.length < 2) return { isValid: false, message: "Путь слишком короткий" };
+            if (path[0] !== path[path.length - 1]) return { isValid: false, message: "Нарушено условие замкнутости маршрута." };
+            const expectedLength = graphData.edges.length + 1;
+            if (path.length !== expectedLength) return { isValid: false, message: `Несоответствие длины. Требуется ${expectedLength} вершин, в вашем маршруте ${path.length} вершин.` };
+            const edgeUsage = {};
+            graphData.edges.forEach(e => { const key = `${Math.min(e.from, e.to)}-${Math.max(e.from, e.to)}`; edgeUsage[key] = 0; });
+            for (let i = 0; i < path.length - 1; i++) {
+                const u = path[i], v = path[i + 1];
+                if (!graphData.nodes.some(n => n.id === u)) return { isValid: false, message: `Вершина ${u} не принадлежит множеству вершин графа.` };
+                if (!graphData.nodes.some(n => n.id === v)) return { isValid: false, message: `Вершина ${v} не принадлежит множеству вершин графа.` };
+                const key = `${Math.min(u, v)}-${Math.max(u, v)}`;
+                if (edgeUsage[key] === undefined) return { isValid: false, message: `Переход между вершинами ${u} и ${v} невозможен: данные вершины не являются смежными.` };
+                edgeUsage[key]++;
+                if (edgeUsage[key] > 1) return { isValid: false, message: `Обнаружено повторное прохождение ребра {${u}, ${v}}.` };
+            }
+            const unusedEdges = Object.keys(edgeUsage).filter(key => edgeUsage[key] === 0);
+            if (unusedEdges.length > 0) return { isValid: false, message: `Не все рёбра пройдены. Не использованы рёбра: ${unusedEdges.map(e => '{' + e.replace('-', ', ') + '}').join(', ')}.` };
+            return { isValid: true, message: "Построенный маршрут является эйлеровым циклом!" };
+        }
+        
+        function findEulerianPath() {
+            let tempAdjList = {};
+            graphData.nodes.forEach(n => tempAdjList[n.id] = []);
+            graphData.edges.forEach(e => { tempAdjList[e.from].push({ to: e.to, id: e.id }); tempAdjList[e.to].push({ to: e.from, id: e.id }); });
+            let current = parseInt(graphData.nodes[0].id);
+            let path = [current];
+            let edges = JSON.parse(JSON.stringify(graphData.edges));
+            while (edges.length > 0) {
+                const neighbors = tempAdjList[current];
+                if (neighbors.length === 0) break;
+                const next = neighbors[0].to;
+                path.push(next);
+                const edgeId = neighbors[0].id;
+                tempAdjList[current] = tempAdjList[current].filter(e => e.id !== edgeId);
+                tempAdjList[next] = tempAdjList[next].filter(e => e.id !== edgeId);
+                edges = edges.filter(e => e.id !== edgeId);
+                current = next;
+            }
+            if (path.length > 0 && path[0] !== path[path.length - 1]) path.push(path[0]);
+            return path;
+        }
+        
+        function checkResult(path) {
+            let pathStr = path.join(" → ");
+            const resultDiv = document.getElementById('resultStatus');
+            const isCycle = path[0] === path[path.length - 1];
+            const isFull = path.length - 1 === graphData.edges.length;
+            if (isCycle && isFull) {
+                eulerCycleFound = true;
+                resultDiv.className = 'status-section success';
+                resultDiv.innerHTML = 'Эйлеров цикл найден!';
+                resultDiv.style.display = 'block';
+                log(`Найден эйлеров цикл: ${pathStr}`);
+            } else {
+                resultDiv.className = 'status-section error';
+                resultDiv.innerHTML = `Ошибка: ${isCycle ? 'пройдены не все рёбра' : 'путь не замкнут'}`;
+                resultDiv.style.display = 'block';
+                log(`Ошибка: ${isCycle ? 'пройдены не все рёбра' : 'путь не замкнут'}`);
+            }
+        }
+        
+        function showModal(title, content) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalContent').innerHTML = content;
+            document.getElementById('resultModal').style.display = 'block';
+        }
+        
+        function closeModal() {
+            document.getElementById('resultModal').style.display = 'none';
+            document.getElementById('showSolutionBtn').style.display = 'none';
+        }
+        
+        async function showSolution() {
+            closeModal();
+            resetUserMode();
+            resetInteractiveMode();
+            await new Promise(r => setTimeout(r, 300));
+            runFleury();
+        }
+        
+        function log(msg) {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += msg + "<br>";
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = "";
+        }
+        
+        window.onload = init;
+    </script>
+</body>
+</html>
