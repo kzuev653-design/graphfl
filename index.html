@@ -14,6 +14,7 @@
             --danger: #dc3545;
             --info: #17a2b8;
             --interactive: #9c27b0;
+            --user-mode: #fd7e14; /* Новый цвет для самостоятельного режима (оранжевый) */
             --theory: #673ab7;
             --border-radius: 8px;
             --box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -26,7 +27,6 @@
             padding: 0;
         }
         
-        /* РАЗРЕШАЕМ ПРОКРУТКУ НА ТЕЛЕФОНЕ */
         html, body {
             width: 100%;
             height: auto;
@@ -256,6 +256,7 @@
         .btn-danger { background-color: var(--danger); }
         .btn-info { background-color: var(--info); }
         .btn-interactive { background-color: var(--interactive); }
+        .btn-user-mode { background-color: var(--user-mode); } /* Кнопка самостоятельного режима */
         .btn-theory { background-color: var(--theory); }
         
         .btn-group {
@@ -289,7 +290,17 @@
             border: 1px solid #e9ecef;
         }
         
-        .user-input-section { background: #f8f9fa; border-left: 4px solid var(--primary); }
+        /* Стиль для секции самостоятельного режима */
+        .user-input-section { 
+            background: #fff4e6; 
+            border-left: 4px solid var(--user-mode); 
+        }
+        .user-input-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: var(--user-mode);
+        }
+        
         .interactive-section { background: #f3e5f5; border-left: 4px solid var(--interactive); }
         .theory-section { background: #ede7f6; border-left: 4px solid var(--theory); }
         
@@ -396,7 +407,6 @@
             display: none;
         }
         
-        /* МОБИЛЬНАЯ АДАПТАЦИЯ */
         @media (max-width: 991px) {
             .main-content {
                 flex-direction: column;
@@ -507,7 +517,8 @@
                     <div class="section-title">Режимы работы</div>
                     <div class="btn-group main-buttons">
                         <button onclick="runFleury()" id="autoBtn" class="btn btn-success">Автопоиск</button>
-                        <button onclick="startUserMode()" id="userModeBtn" class="btn btn-warning">Самостоятельно</button>
+                        <!-- Изменен класс для кнопки самостоятельного режима -->
+                        <button onclick="startUserMode()" id="userModeBtn" class="btn btn-user-mode">Самостоятельно</button>
                         <button onclick="startInteractiveMode()" id="interactiveBtn" class="btn btn-interactive">Интерактивно</button>
                     </div>
                     
@@ -527,7 +538,7 @@
                     </div>
                     
                     <div id="interactiveSection" class="interactive-section" style="display: none;">
-                        <div class="interactive-title">Интерактивный режим</div>
+                        <div class="interactive-title"> Интерактивный режим</div>
                         <div class="current-path">
                             <div class="path-display" id="interactivePathDisplay">Кликайте на вершины...</div>
                         </div>
@@ -545,7 +556,7 @@
                     </div>
                     
                     <div id="theorySection" class="theory-section" style="display: none;">
-                        <div class="theory-title">Теоретическое объяснение</div>
+                        <div class="theory-title">📖 Теоретическое объяснение</div>
                         <div class="theory-content" id="theoryContent"></div>
                         <div class="btn-group-vertical">
                             <button onclick="continueFleury()" class="btn btn-success">Продолжить</button>
@@ -569,8 +580,6 @@
             </div>
         </div>
     </div>
-    
-
     
     <div id="resultModal" class="modal">
         <div class="modal-content">
@@ -850,7 +859,7 @@
             eulerCycleFound = false;
             document.getElementById('resultStatus').style.display = 'none';
             clearLog();
-            log(' Сгенерирован новый граф');
+            log('Сгенерирован новый граф');
             
             const data = generateEulerianGraphForLevel();
             graphData = data;
@@ -975,7 +984,7 @@
                     showModal("Внимание!", `<h3>Все рёбра пройдены!</h3><p>Теперь нажмите кнопку <strong>"Проверить"</strong>, чтобы узнать, является ли ваш путь эйлеровым циклом.</p><p>Пройдено рёбер: ${interactiveUsedEdges.size}/${graphData.edges.length}</p><p>Путь: ${interactivePath.join(' → ')}</p>`);
                 }
                 if (nodeId === startVertex && interactivePath.length > 1) {
-                    log(` Вернулись в начальную вершину ${startVertex}`);
+                    log(`↩️ Вернулись в начальную вершину ${startVertex}`);
                 }
             }
         }
@@ -1013,7 +1022,7 @@
                     const edge = findEdge(u, v);
                     if (edge) colorEdge(edge.id, '#28a745');
                 });
-                log(`Найден эйлеров цикл: ${interactivePath.join(' → ')}`);
+                log(`✅ Найден эйлеров цикл: ${interactivePath.join(' → ')}`);
                 setTimeout(() => exitInteractiveMode(), 3000);
             } else {
                 let errorMessage = "Не эйлеров цикл. ";
@@ -1024,7 +1033,7 @@
                 else if (result.message.includes("не все рёбра пройдены")) errorMessage += "Данный граф не является эйлеровым, потому что пройдены не все рёбра.";
                 else errorMessage += result.message;
                 showModal("Ошибка", errorMessage);
-                log(`Ошибка: ${errorMessage}`);
+                log(`❌ Ошибка: ${errorMessage}`);
                 if (interactiveUsedEdges.size < graphData.edges.length) log(`💡 Осталось пройти ${graphData.edges.length - interactiveUsedEdges.size} рёбер`);
             }
             document.getElementById('checkNotification').style.display = 'none';
@@ -1039,7 +1048,7 @@
             updatePathDisplay();
             updateInteractiveCounters();
             document.getElementById('checkNotification').style.display = 'none';
-            log("Путь сброшен. Начните заново.");
+            log("🔄 Путь сброшен. Начните заново.");
         }
         
         function undoLastStep() {
@@ -1091,7 +1100,7 @@
             document.getElementById('interactiveSection').style.display = 'none';
             document.getElementById('theorySection').style.display = 'none';
             resetEdgeColors();
-            log(" Самостоятельный режим включен. Введите путь.");
+            log("Самостоятельный режим включен. Введите путь.");
             setTimeout(() => document.getElementById('pathInput').focus(), 100);
         }
         
@@ -1113,7 +1122,7 @@
                 document.getElementById('resultStatus').innerHTML = 'Эйлеров цикл найден!';
                 document.getElementById('resultStatus').style.display = 'block';
                 visualizeUserPath(path, true);
-                log(`Найден эйлеров цикл: ${path.join(' → ')}`);
+                log(`✅ Найден эйлеров цикл: ${path.join(' → ')}`);
                 setTimeout(() => resetUserMode(), 3000);
             } else {
                 let errorMessage = "Не эйлеров цикл. ";
@@ -1125,7 +1134,7 @@
                 else errorMessage += result.message;
                 showModal("Ошибка", errorMessage);
                 visualizeUserPath(path, false);
-                log(`Попытка ${userAttempts}: ${errorMessage}`);
+                log(`❌ Попытка ${userAttempts}: ${errorMessage}`);
                 if (userAttempts >= maxAttempts) {
                     document.getElementById('showSolutionBtn').style.display = 'inline-block';
                     solutionPath = findEulerianPath();
@@ -1136,9 +1145,9 @@
         
         function showHint() {
             const edgeCount = graphData.edges.length;
-            let hint = `Подсказка: В графе ${edgeCount} рёбер, значит в цикле должно быть ${edgeCount + 1} вершин.`;
+            let hint = `Подсказка: В цикле должно быть ${edgeCount + 1} вершин.`;
             showModal("Подсказка", hint);
-            log(`Подсказка: ${hint.substring(0, 50)}...`);
+            log(`💡 Подсказка: ${hint.substring(0, 50)}...`);
         }
         
         function showTheoryExplanation() {
@@ -1155,7 +1164,7 @@
             solutionPath = findEulerianPath();
             showModal("Решение", `Правильный эйлеров цикл: ${solutionPath.join(' → ')}`);
             document.getElementById('showSolutionBtn').style.display = 'inline-block';
-            log(`Показано правильное решение: ${solutionPath.join(' → ')}`);
+            log(`💡 Показано правильное решение: ${solutionPath.join(' → ')}`);
         }
         
         function resetUserMode() {
@@ -1214,7 +1223,7 @@
             let html = `<h4 style="color: var(--theory);">${theory.title}</h4>`;
             theory.steps.forEach(step => { html += `<div style="margin-bottom: 10px;"><strong>${step.title}:</strong> ${step.content}</div>`; });
             document.getElementById('theoryContent').innerHTML = html;
-            log(`📖 Теория: ${theory.title}`);
+            log(`Теория: ${theory.title}`);
         }
         
         async function continueFleury() {
@@ -1346,14 +1355,14 @@
             if (isCycle && isFull) {
                 eulerCycleFound = true;
                 resultDiv.className = 'status-section success';
-                resultDiv.innerHTML = 'Эйлеров цикл найден!';
+                resultDiv.innerHTML = '🎉 Эйлеров цикл найден!';
                 resultDiv.style.display = 'block';
-                log(`Найден эйлеров цикл: ${pathStr}`);
+                log(`✅ Найден эйлеров цикл: ${pathStr}`);
             } else {
                 resultDiv.className = 'status-section error';
-                resultDiv.innerHTML = `Ошибка: ${isCycle ? 'пройдены не все рёбра' : 'путь не замкнут'}`;
+                resultDiv.innerHTML = `❌ Ошибка: ${isCycle ? 'пройдены не все рёбра' : 'путь не замкнут'}`;
                 resultDiv.style.display = 'block';
-                log(`Ошибка: ${isCycle ? 'пройдены не все рёбра' : 'путь не замкнут'}`);
+                log(`❌ Ошибка: ${isCycle ? 'пройдены не все рёбра' : 'путь не замкнут'}`);
             }
         }
         
